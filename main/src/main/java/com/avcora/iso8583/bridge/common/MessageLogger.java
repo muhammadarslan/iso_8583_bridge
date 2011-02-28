@@ -20,13 +20,15 @@ public class MessageLogger {
         try {
             if (appender == null) {
                 ClientConfiguration cc = Main.getClientConfiguration(port);
-                String path = new File(Constants.DATA_DIR + File.separator + cc.getDescription().replaceAll(" ", "_")
+                if (cc == null)
+                    cc = new ClientConfiguration(8000, "dummy application"); //TODO remove this line
+                String path = new File(Constants.DATA_DIR + File.separator + "logs" + File.separator + cc.getDescription().replaceAll(" ", "_")
                         + File.separator + "outgoing" + File.separator,
                         cc.getDescription().replaceAll(" ", "_") + ".log").getAbsolutePath();
                 appender = new DailyRollingFileAppender(new PatternLayout("[%d] [%t] %-5p %c %x - %m%n"), path, "'.'yyyy-MM-dd");
 
                 appender.setName(String.valueOf(port));
-                Logger.getRootLogger().addAppender(appender);
+                logger.addAppender(appender);
             }
         } catch (IOException e) {
             e.printStackTrace();

@@ -2,6 +2,7 @@ package com.avcora.iso8583.bridge.listener;
 
 import com.avcora.iso8583.bridge.common.Field;
 import com.avcora.iso8583.bridge.common.MessageFactory;
+import com.avcora.iso8583.bridge.common.MessageLogger;
 import com.avcora.iso8583.bridge.sender.ConnectorSocket;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
@@ -16,7 +17,9 @@ import org.w3c.dom.NodeList;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.net.InetSocketAddress;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -54,10 +57,14 @@ public class MessageListener extends IoHandlerAdapter {
         logger.info("--------------------------");
 
         //add in log files
-
-        /*try {
-        Integer port = ((InetSocketAddress) session.getRemoteAddress()).getPort();
-        }*/
+        try {
+            Integer port = ((InetSocketAddress) session.getLocalAddress()).getPort();
+            Logger messageLogger = MessageLogger.getLogger(port);
+            messageLogger.info("Message sent at " + new SimpleDateFormat("HH:mm:ss").format(new Date()));
+            messageLogger.info(str);
+        } catch (Exception e) {
+            logger.error("", e);
+        }
 
 
         Document document = createDocument(str);

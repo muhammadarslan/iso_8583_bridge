@@ -1,6 +1,7 @@
 package com.avcora.iso8583.bridge.listener;
 
 import com.avcora.iso8583.bridge.common.MessageFactory;
+import com.avcora.iso8583.bridge.common.MessageLogger;
 import org.apache.log4j.Logger;
 import org.apache.mina.core.session.IoSession;
 import org.jpos.iso.ISOException;
@@ -10,6 +11,9 @@ import org.jpos.iso.packager.ISO93APackager;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.net.InetSocketAddress;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -41,10 +45,23 @@ public class Clients {
                 return;
             }
 
+            //add in log files
+            try {
+                Integer port = ((InetSocketAddress) session.getLocalAddress()).getPort();
+                Logger messageLogger = MessageLogger.getLogger(port);
+                messageLogger.info("Response received at " + new SimpleDateFormat("HH:mm:ss").format(new Date()));
+                messageLogger.info(response);
+            } catch (Exception e) {
+                logger.error("", e);
+            }
+
+
             if (isEchoResponse(msg))
                 sendSignOnOrKeyExchange(msg, session);
             else
                 session.write(response);
+
+
         } catch (Throwable e) {
             logger.error("cannot respond to client", e);
         }

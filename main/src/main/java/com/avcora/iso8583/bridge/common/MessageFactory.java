@@ -79,6 +79,7 @@ public class MessageFactory {
         msg.set(11, getSTAN());
         msg.set(12, getCurrentDateTime(FULL_FORMATTER));
         msg.set(24, _24_ECHO);
+        //msg.set() TODO add field id 59 value 476274343
         return msg;
     }
 
