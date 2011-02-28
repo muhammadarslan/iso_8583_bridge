@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="iso_bridge" default="copy-resources">
+
+    <target name="copy-resources">
+        <copy todir="../target/classes">
+            <fileset dir="../resources" includes="*.properties"/>
+        </copy>
+    </target>
+
+</project>
