@@ -1,6 +1,7 @@
 package com.avcora.iso8583.bridge.listener;
 
 import com.avcora.iso8583.bridge.common.Constants;
+import com.avcora.iso8583.bridge.common.MessageFactory;
 import com.avcora.iso8583.bridge.sender.ConnectorSocket;
 import org.apache.log4j.Logger;
 import org.apache.log4j.helpers.Loader;
@@ -10,6 +11,7 @@ import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.filter.codec.textline.TextLineCodecFactory;
 import org.apache.mina.filter.logging.LoggingFilter;
 import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
+import org.jpos.iso.ISOMsg;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -61,6 +63,9 @@ public class Main {
             }
 
             ConnectorSocket.getInstance().connect();
+
+            ISOMsg echo = MessageFactory.createEchoISOMsg();
+            ConnectorSocket.getInstance().sendMessage(echo);
 
         } catch(Throwable e) {
             logger.fatal("cannot start message listener", e);

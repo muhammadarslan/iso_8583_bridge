@@ -33,6 +33,7 @@ public class MessageFactory {
     public static final Integer ECHO_RESPONSE_MTI = 1814;
     public static final String _24_ECHO = "831";
     public static final String _24_SIGN_ON = "801";
+    public static final String _24_KEY_EX = "811";
 
     private static final String PATH_TO_STAN_PROPERTIES = Constants.DATA_DIR + File.separator + "stan.properties";
     private static final Integer STAN_MIN = 1;
@@ -90,6 +91,27 @@ public class MessageFactory {
         msg.set(11, response.getString(11));
         msg.set(12, getCurrentDateTime(FULL_FORMATTER));
         msg.set(24, _24_SIGN_ON);
+        return msg;
+    }
+
+    public static ISOMsg createKeyExInitMessage(ISOMsg response) throws ISOException, IOException {
+        ISOMsg msg = new ISOMsg(ECHO_MTI);
+        msg.set(0, String.valueOf(ECHO_MTI));
+        msg.set(7, getCurrentDateTime(SIMPLE_FORMATTER));
+        msg.set(11, response.getString(11));
+        msg.set(12, getCurrentDateTime(FULL_FORMATTER));
+        msg.set(24, _24_KEY_EX);
+        return msg;
+    }
+    public static ISOMsg createKeyExSecondMessage(ISOMsg response, String keyExValue) throws ISOException, IOException {
+        ISOMsg msg = new ISOMsg(ECHO_RESPONSE_MTI);
+        msg.set(0, String.valueOf(ECHO_RESPONSE_MTI));
+        msg.set(7, getCurrentDateTime(SIMPLE_FORMATTER));
+        msg.set(11, response.getString(11));
+        msg.set(12, getCurrentDateTime(FULL_FORMATTER));
+        msg.set(24, response.getString(24));
+        msg.set(39, "800");
+        msg.set(96, keyExValue.getBytes());
         return msg;
     }
 

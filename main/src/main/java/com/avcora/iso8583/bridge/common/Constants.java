@@ -26,6 +26,8 @@ public class Constants {
 
     public static final String DATA_DIR = getString("data.dir");
 
+    public static final String ENCRYPTION_KEY = getString("encryption.key");
+
 
     private static String getString(String key) {
         return props.getProperty(key);

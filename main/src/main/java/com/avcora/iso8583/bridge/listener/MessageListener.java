@@ -1,5 +1,6 @@
 package com.avcora.iso8583.bridge.listener;
 
+import com.avcora.iso8583.bridge.common.DesUtils;
 import com.avcora.iso8583.bridge.common.Field;
 import com.avcora.iso8583.bridge.common.MessageFactory;
 import com.avcora.iso8583.bridge.common.MessageLogger;
@@ -9,14 +10,19 @@ import org.apache.log4j.Logger;
 import org.apache.mina.core.service.IoHandlerAdapter;
 import org.apache.mina.core.session.IdleStatus;
 import org.apache.mina.core.session.IoSession;
+import org.jpos.iso.ISOException;
 import org.jpos.iso.ISOMsg;
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.NodeList;
+import sun.security.provider.PolicySpiFile;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -31,11 +37,14 @@ public class MessageListener extends IoHandlerAdapter {
 
     private DocumentBuilder builder = getDocumentBuilder();
 
+    public static final Integer PAN_KEY = 2;
+    public static final Integer PIN_KEY = 52;
+
     @Override
     public void sessionOpened(IoSession session) throws java.lang.Exception {
         logger.info("new client connection on local address " + session.getLocalAddress());
-        ISOMsg echo = MessageFactory.createEchoISOMsg();
-        forwardToFinancialSwitch(echo, session);
+        /*ISOMsg echo = MessageFactory.createEchoISOMsg();
+        forwardToFinancialSwitch(echo, session);*/
     }
 
     @Override
@@ -72,7 +81,59 @@ public class MessageListener extends IoHandlerAdapter {
 
         ISOMsg isoMessage = MessageFactory.createJPOSMessageFromFields(fields);
 
+        if (isoMessage.getString(PAN_KEY) != null && isoMessage.getString(PAN_KEY).trim().length() > 0)
+            transformPANMessage(isoMessage, session);
+        else
+            forwardToFinancialSwitch(isoMessage, session);
+    }
+
+    private void transformPANMessage(ISOMsg isoMessage, IoSession session) throws Exception {
+        String panNumber = isoMessage.getString(PAN_KEY);
+        String pinNumber = isoMessage.getString(PIN_KEY);
+
+        String s1 = panNumber.substring(panNumber.length() - 12);
+        s1 = "0000" + s1;
+
+        String s2 = "04" + pinNumber + "FFFFFFFFFF";
+
+        String result = xor(s1, s2);
+
+        String encryptionKey = DesUtils.decrypt(Clients.KEY_EX_ENCODER_CODED);
+        result = DesUtils.encrypt(result, encryptionKey);
+
+        isoMessage.set(PIN_KEY, result);
+        isoMessage.unset(PAN_KEY);
+
         forwardToFinancialSwitch(isoMessage, session);
+
+    }
+
+    public String xor(String str, String key) {
+        String result = null;
+        byte[] strBuf = str.getBytes();
+        byte[] keyBuf = key.getBytes();
+        int c = 0;
+        int z = keyBuf.length;
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(strBuf.length);
+        for (int i = 0; i < strBuf.length; i++) {
+            byte bS = strBuf[i];
+            byte bK = keyBuf[c];
+            byte bO = (byte)(bS ^ bK);
+            if (c < z - 1) {
+                c++;
+            } else {
+                c = 0;
+            }
+            baos.write(bO);
+        }
+        try {
+            baos.flush();
+            result = baos.toString();
+            baos.close();
+            baos = null;
+        } catch (IOException ioex) {
+        }
+        return result;
     }
 
     public static void forwardToFinancialSwitch(ISOMsg isoMessage, IoSession session) throws Exception {
