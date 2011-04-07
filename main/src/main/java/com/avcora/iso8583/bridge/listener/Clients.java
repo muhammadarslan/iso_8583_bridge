@@ -1,5 +1,6 @@
 package com.avcora.iso8583.bridge.listener;
 
+import com.avcora.iso8583.bridge.common.DesUtils;
 import com.avcora.iso8583.bridge.common.MessageFactory;
 import com.avcora.iso8583.bridge.common.MessageLogger;
 import com.avcora.iso8583.bridge.sender.ConnectorSocket;

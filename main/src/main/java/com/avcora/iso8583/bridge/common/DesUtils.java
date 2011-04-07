@@ -101,4 +101,21 @@ public class DesUtils {
             return str.toUpperCase();
         }
     }
+
+    public static void main(String[] args) {
+        String decrypt = decrypt("7E9221106B1F653B13E744C391C85CBF");
+        System.out.println(decrypt);
+        System.out.println(decrypt.length());
+
+        System.out.println("4ff910df3f7a6a891ffffffbfed".length());
+        System.out.println(padWithZeros("4ff910df3f7a6a891ffffffbfed").length());
+    }
+
+    public static String padWithZeros(String message) {
+        for (int i = 0 ; i < message.length() % 8; i++) {
+            message = "0" + message;
+        }
+        return message;
+    }
+
 }

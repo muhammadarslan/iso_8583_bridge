@@ -10,19 +10,19 @@ import org.apache.log4j.Logger;
 import org.apache.mina.core.service.IoHandlerAdapter;
 import org.apache.mina.core.session.IdleStatus;
 import org.apache.mina.core.session.IoSession;
-import org.jpos.iso.ISOException;
 import org.jpos.iso.ISOMsg;
+import org.jpos.iso.ISOUtil;
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.NodeList;
-import sun.security.provider.PolicySpiFile;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.math.BigInteger;
 import java.net.InetSocketAddress;
-import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -82,30 +82,65 @@ public class MessageListener extends IoHandlerAdapter {
         ISOMsg isoMessage = MessageFactory.createJPOSMessageFromFields(fields);
 
         if (isoMessage.getString(PAN_KEY) != null && isoMessage.getString(PAN_KEY).trim().length() > 0)
-            transformPANMessage(isoMessage, session);
+            createAndSendPANMessage(isoMessage, session);
         else
             forwardToFinancialSwitch(isoMessage, session);
     }
 
-    private void transformPANMessage(ISOMsg isoMessage, IoSession session) throws Exception {
-        String panNumber = isoMessage.getString(PAN_KEY);
-        String pinNumber = isoMessage.getString(PIN_KEY);
-
-        String s1 = panNumber.substring(panNumber.length() - 12);
-        s1 = "0000" + s1;
-
-        String s2 = "04" + pinNumber + "FFFFFFFFFF";
-
-        String result = xor(s1, s2);
-
-        String encryptionKey = DesUtils.decrypt(Clients.KEY_EX_ENCODER_CODED);
-        result = DesUtils.encrypt(result, encryptionKey);
-
-        isoMessage.set(PIN_KEY, result);
-        isoMessage.unset(PAN_KEY);
+    private void createAndSendPANMessage(ISOMsg isoMessage, IoSession session) throws Exception {
+        isoMessage = createPANMessage(isoMessage);
+        isoMessage.dump(new PrintStream(System.out), "");
 
         forwardToFinancialSwitch(isoMessage, session);
 
+    }
+
+    public ISOMsg createPANMessage(ISOMsg isoMessage) throws Exception {
+        String panNumber = isoMessage.getString(PAN_KEY);
+        String pinNumber = isoMessage.getString(PIN_KEY);
+
+        String result = createPANBlock(panNumber, pinNumber);
+
+        String encryptionKey = DesUtils.decrypt(Clients.KEY_EX_ENCODER_CODED);
+        result = DesUtils.encrypt(padWithZeros(result), encryptionKey);
+
+        isoMessage.set(PIN_KEY, DesUtils.hexToBytes(result));
+
+        String fixed = maskPANNumber(panNumber);
+
+        isoMessage.set(PAN_KEY, fixed);
+
+        return isoMessage;
+
+    }
+
+    public String createPANBlock(String panNumber, String pinNumber) {
+
+        String s1 = createPANBlockPart1(panNumber);
+        String s2 = createPANBlockPart2(pinNumber);
+
+        /*BigInteger xored = new BigInteger(s1, 16).xor(new BigInteger(s2, 16));
+        String result = xored.toString(16);*/
+
+        return xorHexStrings(s1, s2);
+
+    }
+
+    public String createPANBlockPart1(String panNumber) {
+        String s1 = panNumber.substring(panNumber.length() - 12);
+        return "0000" + s1;
+    }
+
+    public String createPANBlockPart2(String pinNumber) {
+        return "04" + pinNumber + "FFFFFFFFFF";
+    }
+
+    public String xorHexStrings(String s1, String s2) {
+        return ISOUtil.hexor(s1, s2);
+    }
+
+    public String maskPANNumber(String panNumber) {
+        return panNumber.substring(0, 6) + "*********" + panNumber.substring(panNumber.length() - 4, panNumber.length());
     }
 
     public String xor(String str, String key) {
@@ -140,6 +175,14 @@ public class MessageListener extends IoHandlerAdapter {
         Clients.addClient(isoMessage, session);
         ConnectorSocket.getInstance().sendMessage(isoMessage);
     }
+
+    public String padWithZeros(String message) {
+        for (int i = 0 ; i < message.length() % 8; i++) {
+            message = "0" + message;
+        }
+        return message;
+    }
+
 
     @Override
     public void sessionIdle(IoSession session, IdleStatus status) throws Exception {

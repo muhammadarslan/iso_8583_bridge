@@ -7,6 +7,7 @@ import org.apache.log4j.Logger;
 import org.jpos.iso.ISOException;
 import org.jpos.iso.ISOMsg;
 import org.jpos.iso.ISOPackager;
+import org.jpos.iso.packager.BASE24Packager;
 import org.jpos.iso.packager.ISO93APackager;
 
 import java.io.*;
@@ -53,10 +54,13 @@ public class ConnectorSocket {
     }
 
     public void sendMessage(ISOMsg msg) throws Exception {
+        sendMessage(msg, new ISO93APackager());
+    }
+
+    public void sendMessage(ISOMsg msg, ISOPackager packager) throws Exception {
         if (!socket.isConnected() || socket.isClosed())
             connect();
 
-        ISOPackager packager = new ISO93APackager();
         msg.setPackager(packager);
         byte[] data = msg.pack();
         logger.info("Send ISOMsg\t" + new String(data));
